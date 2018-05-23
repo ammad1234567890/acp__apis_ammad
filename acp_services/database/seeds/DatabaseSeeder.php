@@ -19,5 +19,7 @@ class DatabaseSeeder extends Seeder
             tbl_state_seeder::class,
             tbl_city_seeder::class,
         ]);
+
+        factory(App\User::class, 10)->create();
     }
 }

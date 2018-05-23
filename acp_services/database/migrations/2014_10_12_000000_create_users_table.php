@@ -17,10 +17,10 @@ class CreateUsersTable extends Migration
             Schema::disableForeignKeyConstraints();
             $table->increments('id');
             $table->integer('role_id')->unsigned()->index();
-            $table->string('username')->unique();
+            $table->string('username')->unique()->nullable();
             $table->string('firstname');
             $table->string('lastname');
-            $table->string('email')->unique();
+            $table->string('email');
             $table->string('password');
             $table->unsignedTinyInteger('is_active')->default(1);
             $table->unsignedTinyInteger('is_deleted')->default(0);
