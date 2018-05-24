@@ -27,7 +27,7 @@ Class UserAuthController extends Controller{
         if(Auth::attempt($credentials)){ 
             $user= Auth::user();
             return response()->json([
-                'success'=>1,
+                'status'=>1,
                 'message'=>'Login Successfully',
                 'success_code'=>$this->success_status,
                 'data'=>[
@@ -41,7 +41,7 @@ Class UserAuthController extends Controller{
         }
         else{
             return response()->json([
-                'success'=>0,
+                'status'=>0,
                 'message'=>'Invalid Login Credentials',
                 'success_code'=>401, 
                 'data'=>[],
@@ -61,7 +61,7 @@ Class UserAuthController extends Controller{
         if($firstname!='' && $lastname!='' && $email!='' && $password!='' && $role!=''){
             if(User::where('email', $email)->where('role_id', $role)->exists()){
                 return response()->json([
-                    'success'=>0,
+                    'status'=>0,
                     'message'=>'User is already exist in our system, Please try different Email Address',
                     'success_code'=>409, //Use For Conflicts
                     'data'=>[],
@@ -81,7 +81,7 @@ Class UserAuthController extends Controller{
                 User::where('id', $recently_created->id)->update(['username'=>$username]);
 
                 return response()->json([
-                    'success'=>1,
+                    'status'=>1,
                     'message'=>'Account has been created succesfully',
                     'success_code'=>$this->success_status, //Use for Not Acceptable Data
                     'data'=>[],
@@ -90,11 +90,34 @@ Class UserAuthController extends Controller{
         }
         else{
             return response()->json([
-                'success'=>0,
+                'status'=>0,
                 'message'=>'Please fill up all the details',
                 'success_code'=>406, //Use for Not Acceptable Data
                 'data'=>[],
                 ]);
         }
+    }
+
+    public function user_email_validation(){
+        $email= request('email');
+        $role= request('role_id');
+        if(User::where('email', $email)->where('role_id', $role)->exists()){
+                return response()->json([
+                    'status'=>0,
+                    'message'=>'User is already exist in our system, Please try different Email Address',
+                    'success_code'=>409, //Use For Conflicts
+                    'data'=>[],
+                ]);
+            }
+            else{
+                return response()->json([
+                    'status'=>1,
+                    'message'=>'Correct Email Address',
+                    'success_code'=>$this->success_status, //Use for Not Acceptable Data
+                    'data'=>[],
+                ]);
+
+                
+            }
     }
 }
