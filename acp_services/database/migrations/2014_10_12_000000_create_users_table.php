@@ -21,6 +21,7 @@ class CreateUsersTable extends Migration
             $table->string('firstname');
             $table->string('lastname');
             $table->string('email');
+            $table->integer('verification_code')->nullable();
             $table->string('password');
             $table->unsignedTinyInteger('is_active')->default(1);
             $table->unsignedTinyInteger('is_deleted')->default(0);

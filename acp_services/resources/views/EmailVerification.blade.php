@@ -1,0 +1,1 @@
+Activation Link of your ACP Account, Please Click on provided link to get activated your account <a href="{{$data['url_redirection']}}" target="_blank" style="color:blue;">{{$data['url_redirection']}}</a>

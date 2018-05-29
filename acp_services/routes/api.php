@@ -20,3 +20,4 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 Route::post('user/login','UserAuthController@login');
 Route::post('tutor/signup','UserAuthController@tutor_signup');
 Route::post('user/email_validation','UserAuthController@user_email_validation');
+Route::post('user/email_verification','UserAuthController@email_verification');
