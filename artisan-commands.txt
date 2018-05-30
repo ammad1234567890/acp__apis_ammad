@@ -1,0 +1,5 @@
+1- php artisan migrate -seed
+2- php artisan passport:install
+3- php artisan serve
+
+run npm start on "3000" port.

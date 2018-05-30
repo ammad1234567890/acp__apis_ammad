@@ -18,30 +18,43 @@ Class UserAuthController extends Controller{
     public function login(){
        $email=request('email');
        $password= request('password');
-       $role= request('role');
+       $role= request('role_id');
 
        $credentials = [
         'email' => $email,
         'password' => $password,
         'role_id' => $role,
-        'is_active'=>1
         ];
 
 
-        if(Auth::attempt($credentials)){ 
+        if(Auth::attempt($credentials)){
+
+
             $user= Auth::user();
-            return response()->json([
-                'status'=>1,
-                'message'=>'Login Successfully',
-                'success_code'=>$this->success_status,
-                'data'=>[
-                    'token'=>$user->createToken('App')->accessToken,
-                    'id'=>$user->id,
-                    'name'=>$user->username,
-                    'email'=>$user->email,
-                    'role_id'=>$user->role_id
-                ],
-            ]);
+            if($user->is_active==1){
+                return response()->json([
+                    'status'=>1,
+                    'message'=>'Login Successfully',
+                    'success_code'=>$this->success_status,
+                        'data'=>[
+                            'token'=>$user->createToken('App')->accessToken,
+                            'id'=>$user->id,
+                            'name'=>$user->username,
+                            'email'=>$user->email,
+                            'role_id'=>$user->role_id
+                        ],
+                ]);
+            } 
+            else{
+                return response()->json([
+                    'status'=>0,
+                    'message'=>'Account is not active',
+                    'success_code'=>403,
+                        'data'=>[
+                            'id'=>$user->id,
+                        ],
+                ]);
+            }
         }
         else{
             return response()->json([
@@ -133,104 +146,144 @@ Class UserAuthController extends Controller{
 
 
         if($user_id!=""){
-            $user_data=User::where('id', $user_id)->get();
-            $email=$user_data[0]['email'];
 
-            //User Hits from the email
-            if($from_email_url=="acp101110"){
-                if($user_data[0]['verification_code']!=null && $user_data[0]['is_active']==0){
-                    
-                    if($user_data[0]['verification_code']==$verification_code){
-                        //update to active
-                        User::where('id', $user_id)->update(['is_active'=>1]);
 
-                        $response_data=array(
-                            'status'=>1,
-                            'message'=>"Successfully Activated!",
-                            'success_code'=>200,
-                            'data'=>[
-                                'status'=>'true',
-                                'email'=>$email
-                            ]
-                        );
-                    return response()->json($response_data);
-                    //will show already activated screen status=true
+            $user_data=User::where('id', $user_id)->get()->toArray();
+            if($user_data!=null){
+                $email=$user_data[0]['email'];
+
+                //User Hits from the email
+                if($from_email_url=="acp101110"){
+                    if($user_data[0]['verification_code']!=null && $user_data[0]['is_active']==0){
+                        
+                        if($user_data[0]['verification_code']==$verification_code){
+                            //update to active
+                            User::where('id', $user_id)->update(['is_active'=>1]);
+
+                            $response_data=array(
+                                'status'=>1,
+                                'message'=>"Successfully Activated!",
+                                'success_code'=>200,
+                                'data'=>[
+                                    'status'=>'true',
+                                    'email'=>$email
+                                ]
+                            );
+                        return response()->json($response_data);
+                        //will show already activated screen status=true
+                        }
+                        else{
+                            $response_data=array(
+                            'status'=>0,
+                            'message'=>"Activation Link has been Expired!",
+                            'success_code'=>409,
+                                'data'=>[
+                                    'status'=>'false',
+                                    'email'=>$email
+                                ]
+                            );
+                            return response()->json($response_data);
+                        }
                     }
-                    else{
+                    else if($user_data[0]['verification_code']!=null && $user_data[0]['is_active']==1){
                         $response_data=array(
-                        'status'=>0,
-                        'message'=>"Activation Link has been Expired!",
-                        'success_code'=>409,
+                            'status'=>0,
+                            'message'=>"Already Activated!",
+                            'success_code'=>409,
                             'data'=>[
-                                'status'=>'false',
+                                'status'=>'activated',
                                 'email'=>$email
                             ]
                         );
                         return response()->json($response_data);
                     }
                 }
-                else if($user_data[0]['verification_code']!=null && $user_data[0]['is_active']==1){
-                    $response_data=array(
-                        'status'=>0,
-                        'message'=>"Already Activated!",
-                        'success_code'=>409,
-                        'data'=>[
-                            'status'=>'activated',
-                            'email'=>$email
-                        ]
-                    );
-                    return response()->json($response_data);
+                // If user Redirects to the verfication page from website
+                else{
+                    if($user_data[0]['verification_code']!=null && $user_data[0]['is_active']==1){
+
+                        $response_data=array(
+                            'status'=>0,
+                            'message'=>"Already Activated!",
+                            'success_code'=>409,
+                            'data'=>[
+                                'status'=>'activated',
+                                'email'=>$email
+                            ]
+                        );
+                        return response()->json($response_data);
+                    }
+                    else if($user_data[0]['verification_code']!=null && $user_data[0]['is_active']==0){
+                        $verification_code=rand(100000, 999999);
+                        User::where('id', $user_id)->update(['verification_code'=>$verification_code]);
+
+                        $this->send_verification_email($user_id, $email, $verification_code);
+
+                        $response_data=array(
+                            'status'=>0,
+                            'message'=>"We have sent the email to your address!",
+                            'success_code'=>409,
+                            'data'=>[
+                                'status'=>'pending',
+                                'email'=>$email
+                            ]
+                        );
+                        return response()->json($response_data);
+                    }
+                    else if($user_data[0]['verification_code']==null && $user_data[0]['is_active']==0){
+                        $verification_code=rand(100000, 999999);
+                        User::where('id', $user_id)->update(['verification_code'=>$verification_code]);
+                        $this->send_verification_email($user_id, $email, $verification_code);
+
+                        $response_data=array(
+                            'status'=>0,
+                            'message'=>"We have sent the email to your address!",
+                            'success_code'=>409,
+                            'data'=>[
+                                'status'=>'pending',
+                                'email'=>$email
+                            ]
+                        );
+                        return response()->json($response_data);
+                    }
                 }
             }
-            // If user Redirects to the verfication page from website
             else{
-                if($user_data[0]['verification_code']!=null && $user_data[0]['is_active']==1){
-
-                    $response_data=array(
+                $response_data=array(
                         'status'=>0,
-                        'message'=>"Already Activated!",
+                        'message'=>"Invalid Account!",
                         'success_code'=>409,
                         'data'=>[
-                            'status'=>'activated',
-                            'email'=>$email
+                            'status'=>'invalid',
                         ]
                     );
                     return response()->json($response_data);
-                }
-                else if($user_data[0]['verification_code']!=null && $user_data[0]['is_active']==0){
-                    $verification_code=rand(100000, 999999);
-                    User::where('id', $user_id)->update(['verification_code'=>$verification_code]);
-
-                    $this->send_verification_email($user_id, $email, $verification_code);
-
-                    $response_data=array(
-                        'status'=>0,
-                        'message'=>"We have sent the email to your address!",
-                        'success_code'=>409,
-                        'data'=>[
-                            'status'=>'pending',
-                            'email'=>$email
-                        ]
-                    );
-                    return response()->json($response_data);
-                }
-                else if($user_data[0]['verification_code']==null && $user_data[0]['is_active']==0){
-                    $verification_code=rand(100000, 999999);
-                    User::where('id', $user_id)->update(['verification_code'=>$verification_code]);
-                    $this->send_verification_email($user_id, $email, $verification_code);
-
-                    $response_data=array(
-                        'status'=>0,
-                        'message'=>"We have sent the email to your address!",
-                        'success_code'=>409,
-                        'data'=>[
-                            'status'=>'pending',
-                            'email'=>$email
-                        ]
-                    );
-                    return response()->json($response_data);
-                }
             }
+            
+        }
+    }
+
+
+    public function resend_code(){
+        $user_id= request('user_id');
+
+        $user_data=User::where('id', $user_id)->get();
+
+        if($user_data!=""){
+            $email= $user_data[0]['email'];
+            $code= $user_data[0]['verification_code'];
+
+            $this->send_verification_email($user_id, $email, $code);
+
+            $response_data=array(
+                        'status'=>1,
+                        'message'=>"Verfication Code has been Sent!",
+                        'success_code'=>200,
+                        'data'=>[
+                            'email'=>$email
+                        ]
+                    );
+            return response()->json($response_data);
         }
     }
 
